@@ -35,6 +35,8 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
     try {
         let query = {};
+        
+        // Search by name, email, userId
         if (req.query.search) {
             query.$or = [
                 { name: { $regex: req.query.search, $options: 'i' } },
@@ -42,6 +44,25 @@ router.get('/', async (req, res) => {
                 { userId: { $regex: req.query.search, $options: 'i' } }
             ];
         }
+        
+        // Filter by email and age
+        if (req.query.email) {
+            query.email = { $regex: req.query.email, $options: 'i' };
+        }
+        if (req.query.age) {
+            query.age = parseInt(req.query.age);
+        }
+        
+        // Filter by hobby
+        if (req.query.hobby) {
+            query.hobbies = { $in: [req.query.hobby] };
+        }
+        
+        // Text search in bio
+        if (req.query.bio) {
+            query.$text = { $search: req.query.bio };
+        }
+        
         const users = await User.find(query);
         res.json(users);
     } catch (err) { 

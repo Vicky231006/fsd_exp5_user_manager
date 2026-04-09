@@ -11,6 +11,12 @@ function App() {
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({ name: '', email: '', age: '', hobbies: '', bio: '' });
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterEmail, setFilterEmail] = useState('');
+  const [filterAge, setFilterAge] = useState('');
+  const [filterHobby, setFilterHobby] = useState('');
+  const [filterBio, setFilterBio] = useState('');
+  const [activeFilter, setActiveFilter] = useState(null);
 
   const fetchUsers = async () => {
     const res = await axios.get(`${API_BASE}?search=${search}`);
@@ -58,6 +64,42 @@ function App() {
   const cancelEdit = () => {
     setEditingId(null);
     setEditData({ name: '', email: '', age: '', hobbies: '', bio: '' });
+  };
+
+  const handleFilter = async (filterType) => {
+    try {
+      let query = `${API_BASE}?`;
+      
+      if (filterType === 'email-age' && filterEmail && filterAge) {
+        query += `email=${encodeURIComponent(filterEmail)}&age=${filterAge}`;
+        setActiveFilter(`Email: ${filterEmail}, Age: ${filterAge}`);
+      } else if (filterType === 'hobby' && filterHobby) {
+        query += `hobby=${encodeURIComponent(filterHobby)}`;
+        setActiveFilter(`Hobby: ${filterHobby}`);
+      } else if (filterType === 'bio' && filterBio) {
+        query += `bio=${encodeURIComponent(filterBio)}`;
+        setActiveFilter(`Bio Search: ${filterBio}`);
+      } else {
+        return;
+      }
+
+      const res = await axios.get(query);
+      setUsers(res.data);
+      setShowFilterModal(false);
+    } catch (err) {
+      console.error('Filter error:', err);
+      alert('Error applying filter');
+    }
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilterEmail('');
+    setFilterAge('');
+    setFilterHobby('');
+    setFilterBio('');
+    setActiveFilter(null);
+    fetchUsers();
   };
 
   return (
@@ -109,21 +151,66 @@ function App() {
 
         {/* USERS GRID - RIGHT SIDE */}
         <div style={{ background: '#fff', border: '5px solid #000', padding: '30px', boxShadow: '8px 8px 0px #000', minHeight: '400px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: 'bold', marginBottom: '25px', letterSpacing: '1.5px', borderBottom: '4px solid #FFFF00', paddingBottom: '12px' }}>USERS</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '25px' }}>
-            {users.map(user => (
-              <div 
-                key={user._id} 
-                style={userCardStyle}
-                onClick={() => setSelectedUser(user)}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          <h2 style={{ fontSize: '26px', fontWeight: 'bold', marginBottom: '20px', letterSpacing: '1.5px', borderBottom: '4px solid #FFFF00', paddingBottom: '12px' }}>USERS</h2>
+          
+          {/* SEARCH & FILTER BAR */}
+          <div style={{ marginBottom: '25px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <input 
+              placeholder="🔍 Search by name..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)}
+              style={{...inputStyleBold, flex: 1, minWidth: '200px', padding: '10px'}}
+            />
+            <button 
+              onClick={() => setShowFilterModal(true)}
+              style={{...btnStyleBold, padding: '10px 20px', fontSize: '14px', width: 'auto'}}
+            >
+              ⚙️ FILTER
+            </button>
+            {activeFilter && (
+              <button 
+                onClick={clearFilters}
+                style={{...btnStyleBold, padding: '10px 15px', fontSize: '12px', width: 'auto', background: '#ff6b6b'}}
               >
-                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#000', textAlign: 'center' }}>{user.name}</h3>
-                <p style={{ fontWeight: 'bold', fontSize: '12px', color: '#333', textAlign: 'center', borderTop: '2px solid #FFFF00', paddingTop: '8px' }}>🆔 {user.userId}</p>
-                <p style={{ fontWeight: 'bold', fontSize: '11px', color: '#3b82f6', marginTop: '8px', textAlign: 'center', fontStyle: 'italic' }}>Click for details</p>
+                ✕ Clear
+              </button>
+            )}
+          </div>
+
+          {/* ACTIVE FILTER DISPLAY */}
+          {activeFilter && (
+            <div style={{ 
+              background: '#FFFF00', 
+              border: '3px solid #000', 
+              padding: '10px 15px', 
+              marginBottom: '20px', 
+              fontWeight: 'bold',
+              borderRadius: '4px'
+            }}>
+              Active Filter: {activeFilter}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '25px' }}>
+            {users.length > 0 ? (
+              users.map(user => (
+                <div 
+                  key={user._id} 
+                  style={userCardStyle}
+                  onClick={() => setSelectedUser(user)}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#000', textAlign: 'center' }}>{user.name}</h3>
+                  <p style={{ fontWeight: 'bold', fontSize: '12px', color: '#333', textAlign: 'center', borderTop: '2px solid #FFFF00', paddingTop: '8px' }}>🆔 {user.userId}</p>
+                  <p style={{ fontWeight: 'bold', fontSize: '11px', color: '#3b82f6', marginTop: '8px', textAlign: 'center', fontStyle: 'italic' }}>Click for details</p>
+                </div>
+              ))
+            ) : (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#666' }}>
+                <p style={{ fontSize: '18px', fontWeight: 'bold' }}>No users found</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -216,6 +303,99 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* FILTER MODAL */}
+      {showFilterModal && (
+        <div style={modalOverlayStyle} onClick={() => setShowFilterModal(false)}>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0' }}>ADVANCED FILTERS</h2>
+              <button onClick={() => setShowFilterModal(false)} style={closeModalBtn}>
+                <FiX size={28} />
+              </button>
+            </div>
+
+            {/* FILTER 1: EMAIL & AGE */}
+            <div style={{ marginBottom: '25px', paddingBottom: '20px', borderBottom: '3px solid #FFFF00' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '12px' }}>🔍 Filter by Email & Age</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>EMAIL</label>
+                  <input 
+                    placeholder="user@example.com" 
+                    style={inputStyleBold} 
+                    value={filterEmail}
+                    onChange={(e) => setFilterEmail(e.target.value)}
+                  />
+                </div>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>AGE</label>
+                  <input 
+                    placeholder="25" 
+                    style={inputStyleBold} 
+                    type="number"
+                    value={filterAge}
+                    onChange={(e) => setFilterAge(e.target.value)}
+                  />
+                </div>
+              </div>
+              <button 
+                onClick={() => handleFilter('email-age')}
+                style={{...btnStyleBold, width: '100%'}}
+              >
+                SEARCH BY EMAIL & AGE
+              </button>
+            </div>
+
+            {/* FILTER 2: HOBBIES */}
+            <div style={{ marginBottom: '25px', paddingBottom: '20px', borderBottom: '3px solid #FFFF00' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '12px' }}>🎮 Filter by Hobby</h3>
+              <div style={fieldGroup}>
+                <label style={labelStyle}>HOBBY NAME</label>
+                <input 
+                  placeholder="e.g., reading, gaming, sports..." 
+                  style={inputStyleBold}
+                  value={filterHobby}
+                  onChange={(e) => setFilterHobby(e.target.value)}
+                />
+              </div>
+              <button 
+                onClick={() => handleFilter('hobby')}
+                style={{...btnStyleBold, width: '100%'}}
+              >
+                SEARCH BY HOBBY
+              </button>
+            </div>
+
+            {/* FILTER 3: BIO TEXT SEARCH */}
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '12px' }}>📝 Text Search in Bio</h3>
+              <div style={fieldGroup}>
+                <label style={labelStyle}>SEARCH KEYWORD</label>
+                <input 
+                  placeholder="e.g., developer, designer..." 
+                  style={inputStyleBold}
+                  value={filterBio}
+                  onChange={(e) => setFilterBio(e.target.value)}
+                />
+              </div>
+              <button 
+                onClick={() => handleFilter('bio')}
+                style={{...btnStyleBold, width: '100%'}}
+              >
+                SEARCH IN BIO
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setShowFilterModal(false)}
+              style={{...btnStyleBold, background: '#ff6b6b', width: '100%'}}
+            >
+              CLOSE
+            </button>
           </div>
         </div>
       )}
