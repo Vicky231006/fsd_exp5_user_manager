@@ -84,4 +84,21 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+router.get('/explain/:field', async (req, res) => {
+    try {
+        const { field } = req.params;
+        const { value } = req.query;
+        
+        let query = {};
+        query[field] = value;
+        
+        const explanation = await User.find(query).explain("executionStats");
+        res.json({
+            query: query,
+            executionStats: explanation
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
 module.exports = router;
